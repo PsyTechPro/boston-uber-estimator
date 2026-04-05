@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             font-family: Arial, sans-serif;
@@ -18,10 +16,7 @@
             margin: 0;
         }
 
-        h1 {
-            margin: 20px 0 5px 0;
-            font-size: 26px;
-        }
+        h1 { margin: 20px 0 5px 0; font-size: 26px; }
 
         .subtitle {
             font-size: 14px;
@@ -49,8 +44,7 @@
             font-size: 15px;
         }
 
-        select,
-        input {
+        select, input {
             width: 100%;
             padding: 14px;
             border-radius: 10px;
@@ -74,14 +68,8 @@
             font-size: 16px;
         }
 
-        .estimate-btn {
-            background: #6a5acd;
-            color: white;
-        }
-
-        .reset-btn {
-            background: #d9d9d9;
-        }
+        .estimate-btn { background: #6a5acd; color: white; }
+        .reset-btn { background: #d9d9d9; }
 
         .result {
             margin-top: 20px;
@@ -103,9 +91,7 @@
         }
 
         @media (max-width: 480px) {
-            .button-row {
-                flex-direction: column;
-            }
+            .button-row { flex-direction: column; }
         }
     </style>
 </head>
@@ -137,7 +123,6 @@
                 else if (i < 12) label = i + " AM";
                 else if (i === 12) label = "12 PM";
                 else label = (i - 12) + " PM";
-
                 document.write(`<option value="${i}">${label}</option>`);
             }
         </script>
@@ -208,6 +193,11 @@ function estimateRide() {
     const surge = getSurge(day, hour);
     const final_price = base_price * surge;
 
+    // ✅ RANGE (ADDED)
+    const uncertainty = Math.random() * 0.05 + 0.10;
+    const low_estimate = final_price * (1 - uncertainty);
+    const high_estimate = final_price * (1 + uncertainty);
+
     let speed = 22;
     if (hour >= 7 && hour <= 9) speed = 15;
     else if (hour >= 16 && hour <= 18) speed = 15;
@@ -249,6 +239,7 @@ function estimateRide() {
         <div class="card">💰 <b>Base Price:</b> $${base_price.toFixed(2)}</div>
         <div class="card">⚡ <b>Surge:</b> ${surge}x</div>
         <div class="card">💵 <b>Final Price:</b> $${final_price.toFixed(2)}</div>
+        <div class="card">📊 <b>Range:</b> $${low_estimate.toFixed(2)} – $${high_estimate.toFixed(2)}</div>
         <div class="card">📊 <b>Demand:</b> ${demand}</div>
         <div class="card">⏱ <b>Wait Time:</b> ${wait}</div>
         <div class="card">🚗 <b>Trip Time:</b> ${trip_time} min</div>
