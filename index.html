@@ -51,15 +51,11 @@
 
         select,
         input {
-            display: block;
             width: 100%;
-            max-width: 100%;
             padding: 14px;
             border-radius: 10px;
             border: 1px solid #cfcfcf;
             font-size: 16px;
-            background: white;
-            margin: 0;
         }
 
         .button-row {
@@ -83,13 +79,8 @@
             color: white;
         }
 
-        .estimate-btn:hover {
-            background: #5a4dbd;
-        }
-
         .reset-btn {
             background: #d9d9d9;
-            color: black;
         }
 
         .result {
@@ -103,22 +94,14 @@
             border-radius: 10px;
             margin-top: 10px;
             font-size: 15px;
-            line-height: 1.4;
+        }
+
+        .tip {
+            background: #e6f0ff;
+            border-left: 5px solid #4a90e2;
         }
 
         @media (max-width: 480px) {
-            body {
-                padding: 14px;
-            }
-
-            h1 {
-                font-size: 22px;
-            }
-
-            .container {
-                padding: 18px;
-            }
-
             .button-row {
                 flex-direction: column;
             }
@@ -128,117 +111,152 @@
 
 <body>
 
-    <h1>Uber Price & Demand Estimator</h1>
-    <div class="subtitle">Boston, Massachusetts</div>
+<h1>Uber Price & Demand Estimator</h1>
+<div class="subtitle">Boston, Massachusetts</div>
 
-    <div class="container">
-        <label for="day">Day of Week</label>
-        <select id="day">
-            <option value="0">Monday</option>
-            <option value="1">Tuesday</option>
-            <option value="2">Wednesday</option>
-            <option value="3">Thursday</option>
-            <option value="4">Friday</option>
-            <option value="5">Saturday</option>
-            <option value="6">Sunday</option>
-        </select>
+<div class="container">
 
-        <label for="hour">Hour</label>
-        <select id="hour">
-            <script>
-                for (let i = 0; i < 24; i++) {
-                    let label;
-                    if (i === 0) label = "12 AM";
-                    else if (i < 12) label = i + " AM";
-                    else if (i === 12) label = "12 PM";
-                    else label = (i - 12) + " PM";
+    <label>Day of Week</label>
+    <select id="day">
+        <option value="0">Monday</option>
+        <option value="1">Tuesday</option>
+        <option value="2">Wednesday</option>
+        <option value="3">Thursday</option>
+        <option value="4">Friday</option>
+        <option value="5">Saturday</option>
+        <option value="6">Sunday</option>
+    </select>
 
-                    document.write(`<option value="${i}">${label}</option>`);
-                }
-            </script>
-        </select>
+    <label>Hour</label>
+    <select id="hour">
+        <script>
+            for (let i = 0; i < 24; i++) {
+                let label;
+                if (i === 0) label = "12 AM";
+                else if (i < 12) label = i + " AM";
+                else if (i === 12) label = "12 PM";
+                else label = (i - 12) + " PM";
 
-        <label for="distance">Distance (miles)</label>
-        <input id="distance" type="number" value="3" min="0" step="0.1" />
+                document.write(`<option value="${i}">${label}</option>`);
+            }
+        </script>
+    </select>
 
-        <div class="button-row">
-            <button class="estimate-btn" onclick="estimateRide()">Estimate</button>
-            <button class="reset-btn" onclick="resetForm()">Reset</button>
-        </div>
+    <label>Distance (miles)</label>
+    <input id="distance" type="number" value="3" min="0" step="0.1" />
 
-        <div class="result" id="result"></div>
+    <div class="button-row">
+        <button class="estimate-btn" onclick="estimateRide()">Estimate</button>
+        <button class="reset-btn" onclick="resetForm()">Reset</button>
     </div>
 
-    <script>
-        function estimateRide() {
-            const day = parseInt(document.getElementById("day").value);
-            const hour = parseInt(document.getElementById("hour").value);
-            const distance = parseFloat(document.getElementById("distance").value);
+    <div class="result" id="result"></div>
 
-            if (isNaN(distance) || distance <= 0) {
-                document.getElementById("result").innerHTML = `
-                    <div class="card"><b>Please enter a valid distance.</b></div>
-                `;
-                return;
-            }
+</div>
 
-            const isWeekend = day >= 5 ? 1 : 0;
+<script>
+function estimateRide() {
+    const day = parseInt(document.getElementById("day").value);
+    const hour = parseInt(document.getElementById("hour").value);
+    const distance = parseFloat(document.getElementById("distance").value);
 
-            let baseRate = 2.5;
-            let perMile = 2.2;
-            let base_price = baseRate + (perMile * distance);
+    if (isNaN(distance) || distance <= 0) {
+        document.getElementById("result").innerHTML =
+            `<div class="card"><b>Please enter a valid distance.</b></div>`;
+        return;
+    }
 
-            let demand = "Moderate";
-            let wait = "3-5 minutes";
+    const isWeekend = day >= 5 ? 1 : 0;
 
-            if (
-                (day <= 4 && ((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 18))) ||
-                (day >= 4 && hour >= 20)
-            ) {
-                demand = "High";
-                wait = "6-10+ minutes";
-            }
+    // BASE PRICE
+    let base_price = 2.5 + (2.2 * distance);
 
-            if (hour <= 6 || hour >= 23) {
-                demand = "Low";
-                wait = "1-2 minutes";
-            }
+    // DEMAND
+    let demand = "Moderate";
+    let wait = "3-5 minutes";
 
-            let surge = 1.0;
+    if ((day <= 4 && ((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 18))) ||
+        (day >= 4 && hour >= 20)) {
+        demand = "High";
+        wait = "6-10+ minutes";
+    }
 
-            if (day >= 4 && hour >= 20) surge = 1.5;
-            if (day >= 4 && hour >= 23) surge = 2.0;
-            else if (day <= 4 && ((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 18))) surge = 1.2;
-            else if (day === 6 && hour >= 17 && hour <= 21) surge = 1.3;
+    if (hour <= 6 || hour >= 23) {
+        demand = "Low";
+        wait = "1-2 minutes";
+    }
 
-            let final_price = base_price * surge;
+    // SURGE
+    let surge = 1.0;
 
-            let speed = 22;
-            if (hour >= 7 && hour <= 9) speed = 15;
-            else if (hour >= 16 && hour <= 18) speed = 15;
-            else if (hour >= 22 || hour <= 5) speed = 30;
+    if (day >= 4 && hour >= 20) surge = 1.5;
+    if (day >= 4 && hour >= 23) surge = 2.0;
+    else if (day <= 4 && ((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 18))) surge = 1.2;
+    else if (day === 6 && hour >= 17 && hour <= 21) surge = 1.3;
 
-            if (isWeekend) speed += 3;
+    let final_price = base_price * surge;
 
-            let trip_time = Math.round((distance / speed) * 60);
+    // TRIP TIME
+    let speed = 22;
+    if (hour >= 7 && hour <= 9) speed = 15;
+    else if (hour >= 16 && hour <= 18) speed = 15;
+    else if (hour >= 22 || hour <= 5) speed = 30;
 
-            document.getElementById("result").innerHTML = `
-                <div class="card">💰 <b>Base Price:</b> $${base_price.toFixed(2)}</div>
-                <div class="card">⚡ <b>Surge:</b> ${surge}x</div>
-                <div class="card">💵 <b>Final Price:</b> $${final_price.toFixed(2)}</div>
-                <div class="card">📊 <b>Demand:</b> ${demand}</div>
-                <div class="card">⏱ <b>Wait Time:</b> ${wait}</div>
-                <div class="card">🚗 <b>Trip Time:</b> ${trip_time} min</div>
-            `;
+    if (isWeekend) speed += 3;
+
+    let trip_time = Math.round((distance / speed) * 60);
+
+    // ===== SMART TIP =====
+    let bestHour = hour;
+    let bestCost = final_price;
+
+    for (let h = 0; h < 24; h++) {
+        let testSurge = 1.0;
+
+        if (day >= 4 && h >= 20) testSurge = 1.5;
+        if (day >= 4 && h >= 23) testSurge = 2.0;
+        else if (day <= 4 && ((h >= 7 && h <= 9) || (h >= 16 && h <= 18))) testSurge = 1.2;
+        else if (day === 6 && h >= 17 && h <= 21) testSurge = 1.3;
+
+        let testPrice = (2.5 + (2.2 * distance)) * testSurge;
+
+        if (testPrice < bestCost) {
+            bestCost = testPrice;
+            bestHour = h;
         }
+    }
 
-        function resetForm() {
-            document.getElementById("day").value = "0";
-            document.getElementById("hour").value = "0";
-            document.getElementById("distance").value = "3";
-            document.getElementById("result").innerHTML = "";
-        }
-    </script>
+    let tipHTML = "";
+
+    if (bestHour !== hour) {
+        let label;
+        if (bestHour === 0) label = "12 AM";
+        else if (bestHour < 12) label = bestHour + " AM";
+        else if (bestHour === 12) label = "12 PM";
+        else label = (bestHour - 12) + " PM";
+
+        tipHTML = `<div class="card tip">💡 <b>Tip:</b> Try riding at <b>${label}</b> for a cheaper trip</div>`;
+    }
+
+    // OUTPUT
+    document.getElementById("result").innerHTML = `
+        <div class="card">💰 Base Price: $${base_price.toFixed(2)}</div>
+        <div class="card">⚡ Surge: ${surge}x</div>
+        <div class="card">💵 Final Price: $${final_price.toFixed(2)}</div>
+        <div class="card">📊 Demand: ${demand}</div>
+        <div class="card">⏱ Wait Time: ${wait}</div>
+        <div class="card">🚗 Trip Time: ${trip_time} min</div>
+        ${tipHTML}
+    `;
+}
+
+function resetForm() {
+    document.getElementById("day").value = "0";
+    document.getElementById("hour").value = "0";
+    document.getElementById("distance").value = "3";
+    document.getElementById("result").innerHTML = "";
+}
+</script>
 
 </body>
 </html>
