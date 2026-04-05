@@ -94,6 +94,7 @@
             border-radius: 10px;
             margin-top: 10px;
             font-size: 15px;
+            line-height: 1.4;
         }
 
         .tip {
@@ -155,6 +156,24 @@
 </div>
 
 <script>
+function formatHour(h) {
+    if (h === 0) return "12 AM";
+    if (h < 12) return h + " AM";
+    if (h === 12) return "12 PM";
+    return (h - 12) + " PM";
+}
+
+function getSurge(day, hour) {
+    let surge = 1.0;
+
+    if (day >= 4 && hour >= 20) surge = 1.5;
+    if (day >= 4 && hour >= 23) surge = 2.0;
+    else if (day <= 4 && ((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 18))) surge = 1.2;
+    else if (day === 6 && hour >= 17 && hour <= 21) surge = 1.3;
+
+    return surge;
+}
+
 function estimateRide() {
     const day = parseInt(document.getElementById("day").value);
     const hour = parseInt(document.getElementById("hour").value);
@@ -168,13 +187,17 @@ function estimateRide() {
 
     const isWeekend = day >= 5 ? 1 : 0;
 
-    let base_price = 2.5 + (2.2 * distance);
+    // BASE PRICE
+    const base_price = 2.5 + (2.2 * distance);
 
+    // DEMAND
     let demand = "Moderate";
     let wait = "3-5 minutes";
 
-    if ((day <= 4 && ((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 18))) ||
-        (day >= 4 && hour >= 20)) {
+    if (
+        (day <= 4 && ((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 18))) ||
+        (day >= 4 && hour >= 20)
+    ) {
         demand = "High";
         wait = "6-10+ minutes";
     }
@@ -184,15 +207,11 @@ function estimateRide() {
         wait = "1-2 minutes";
     }
 
-    let surge = 1.0;
+    // SURGE
+    const surge = getSurge(day, hour);
+    const final_price = base_price * surge;
 
-    if (day >= 4 && hour >= 20) surge = 1.5;
-    if (day >= 4 && hour >= 23) surge = 2.0;
-    else if (day <= 4 && ((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 18))) surge = 1.2;
-    else if (day === 6 && hour >= 17 && hour <= 21) surge = 1.3;
-
-    let final_price = base_price * surge;
-
+    // TRIP TIME
     let speed = 22;
     if (hour >= 7 && hour <= 9) speed = 15;
     else if (hour >= 16 && hour <= 18) speed = 15;
@@ -200,25 +219,18 @@ function estimateRide() {
 
     if (isWeekend) speed += 3;
 
-    let trip_time = Math.round((distance / speed) * 60);
+    const trip_time = Math.round((distance / speed) * 60);
 
-    // ===== FIXED SMART TIP (REALISTIC WINDOW) =====
+    // SMART TIP: ONLY LOOK WITHIN +/- 2 HOURS
     let bestHour = hour;
     let bestCost = final_price;
 
-    let start = Math.max(0, hour - 2);
-    let end = Math.min(23, hour + 2);
+    const start = Math.max(0, hour - 2);
+    const end = Math.min(23, hour + 2);
 
     for (let h = start; h <= end; h++) {
-
-        let testSurge = 1.0;
-
-        if (day >= 4 && h >= 20) testSurge = 1.5;
-        if (day >= 4 && h >= 23) testSurge = 2.0;
-        else if (day <= 4 && ((h >= 7 && h <= 9) || (h >= 16 && h <= 18))) testSurge = 1.2;
-        else if (day === 6 && h >= 17 && h <= 21) testSurge = 1.3;
-
-        let testPrice = (2.5 + (2.2 * distance)) * testSurge;
+        const testSurge = getSurge(day, h);
+        const testPrice = base_price * testSurge;
 
         if (testPrice < bestCost) {
             bestCost = testPrice;
@@ -228,23 +240,24 @@ function estimateRide() {
 
     let tipHTML = "";
 
-    if (bestHour !== hour && (final_price - bestCost) > 2) {
-        let label;
-        if (bestHour === 0) label = "12 AM";
-        else if (bestHour < 12) label = bestHour + " AM";
-        else if (bestHour === 12) label = "12 PM";
-        else label = (bestHour - 12) + " PM";
-
-        tipHTML = `<div class="card tip">💡 <b>Tip:</b> Try riding at <b>${label}</b> to save about $${(final_price - bestCost).toFixed(2)}</div>`;
+    if (bestHour !== hour) {
+        const savings = final_price - bestCost;
+        tipHTML = `
+            <div class="card tip">
+                💡 <b>Better Time to Ride:</b> ${formatHour(bestHour)}<br>
+                <b>Estimated Savings:</b> $${savings.toFixed(2)}
+            </div>
+        `;
     }
 
+    // OUTPUT
     document.getElementById("result").innerHTML = `
-        <div class="card">💰 Base Price: $${base_price.toFixed(2)}</div>
-        <div class="card">⚡ Surge: ${surge}x</div>
-        <div class="card">💵 Final Price: $${final_price.toFixed(2)}</div>
-        <div class="card">📊 Demand: ${demand}</div>
-        <div class="card">⏱ Wait Time: ${wait}</div>
-        <div class="card">🚗 Trip Time: ${trip_time} min</div>
+        <div class="card">💰 <b>Base Price:</b> $${base_price.toFixed(2)}</div>
+        <div class="card">⚡ <b>Surge:</b> ${surge}x</div>
+        <div class="card">💵 <b>Final Price:</b> $${final_price.toFixed(2)}</div>
+        <div class="card">📊 <b>Demand:</b> ${demand}</div>
+        <div class="card">⏱ <b>Wait Time:</b> ${wait}</div>
+        <div class="card">🚗 <b>Trip Time:</b> ${trip_time} min</div>
         ${tipHTML}
     `;
 }
