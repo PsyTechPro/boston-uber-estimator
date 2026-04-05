@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Boston Uber Price Estimator</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #1e1e2f, #4b3f72);
+            color: white;
+            text-align: center;
+            padding: 50px;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            margin-bottom: 30px;
+            color: #ccc;
+        }
+
+        .container {
+            background: white;
+            color: black;
+            padding: 30px;
+            border-radius: 15px;
+            width: 360px;
+            margin: auto;
+            box-shadow: 0px 10px 25px rgba(0,0,0,0.3);
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            width: 48%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 8px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .estimate-btn {
+            background: #6a5acd;
+            color: white;
+        }
+
+        .estimate-btn:hover {
+            background: #5a4dbd;
+        }
+
+        .reset-btn {
+            background: #ccc;
+        }
+
+        .result {
+            margin-top: 20px;
+            font-weight: bold;
+            text-align: left;
+        }
+
+        .card {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Uber Price & Demand Estimator</h1>
+<div class="subtitle">Boston, Massachusetts</div>
+
+<div class="container">
+
+    <label>Day of Week</label>
+    <select id="day">
+        <option value="0">Monday</option>
+        <option value="1">Tuesday</option>
+        <option value="2">Wednesday</option>
+        <option value="3">Thursday</option>
+        <option value="4">Friday</option>
+        <option value="5">Saturday</option>
+        <option value="6">Sunday</option>
+    </select>
+
+    <label>Hour</label>
+    <select id="hour">
+        <script>
+            for (let i = 0; i < 24; i++) {
+                let label = i + ":00";
+                if (i === 0) label = "12 AM";
+                else if (i < 12) label = i + " AM";
+                else if (i === 12) label = "12 PM";
+                else label = (i - 12) + " PM";
+
+                document.write(`<option value="${i}">${label}</option>`);
+            }
+        </script>
+    </select>
+
+    <label>Distance (miles)</label>
+    <input id="distance" type="number" value="3" />
+
+    <div style="display:flex; justify-content:space-between;">
+        <button class="estimate-btn" onclick="predict()">Estimate</button>
+        <button class="reset-btn" onclick="resetForm()">Reset</button>
+    </div>
+
+    <div class="result" id="result"></div>
+
+</div>
+
+<script>
+function predict() {
+    const day = document.getElementById("day").value;
+    const hour = document.getElementById("hour").value;
+    const distance = document.getElementById("distance").value;
+
+    const url = `http://127.0.0.1:8000/predict?day=${day}&hour=${hour}&distance=${distance}`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("result").innerHTML = `
+                <div class="card">
+                    💰 <b>Price:</b> $${data.final_price} (Base: $${data.base_price})
+                </div>
+                <div class="card">
+                    ⚡ <b>Surge:</b> ${data.surge_multiplier}x
+                </div>
+                <div class="card">
+                    📊 <b>Demand:</b> ${data.demand}
+                </div>
+                <div class="card">
+                    ⏱ <b>Wait Time:</b> ${data.wait_time}
+                </div>
+                <div class="card">
+                    🚗 <b>Trip Time:</b> ${data.trip_time_minutes} min
+                </div>
+            `;
+        });
+}
+
+function resetForm() {
+    document.getElementById("day").value = "0";
+    document.getElementById("hour").value = "0";
+    document.getElementById("distance").value = "3";
+    document.getElementById("result").innerHTML = "";
+}
+</script>
+
+</body>
+</html>
