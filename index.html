@@ -168,10 +168,8 @@ function estimateRide() {
 
     const isWeekend = day >= 5 ? 1 : 0;
 
-    // BASE PRICE
     let base_price = 2.5 + (2.2 * distance);
 
-    // DEMAND
     let demand = "Moderate";
     let wait = "3-5 minutes";
 
@@ -186,7 +184,6 @@ function estimateRide() {
         wait = "1-2 minutes";
     }
 
-    // SURGE
     let surge = 1.0;
 
     if (day >= 4 && hour >= 20) surge = 1.5;
@@ -196,7 +193,6 @@ function estimateRide() {
 
     let final_price = base_price * surge;
 
-    // TRIP TIME
     let speed = 22;
     if (hour >= 7 && hour <= 9) speed = 15;
     else if (hour >= 16 && hour <= 18) speed = 15;
@@ -206,11 +202,15 @@ function estimateRide() {
 
     let trip_time = Math.round((distance / speed) * 60);
 
-    // ===== SMART TIP =====
+    // ===== FIXED SMART TIP (REALISTIC WINDOW) =====
     let bestHour = hour;
     let bestCost = final_price;
 
-    for (let h = 0; h < 24; h++) {
+    let start = Math.max(0, hour - 2);
+    let end = Math.min(23, hour + 2);
+
+    for (let h = start; h <= end; h++) {
+
         let testSurge = 1.0;
 
         if (day >= 4 && h >= 20) testSurge = 1.5;
@@ -228,17 +228,16 @@ function estimateRide() {
 
     let tipHTML = "";
 
-    if (bestHour !== hour) {
+    if (bestHour !== hour && (final_price - bestCost) > 2) {
         let label;
         if (bestHour === 0) label = "12 AM";
         else if (bestHour < 12) label = bestHour + " AM";
         else if (bestHour === 12) label = "12 PM";
         else label = (bestHour - 12) + " PM";
 
-        tipHTML = `<div class="card tip">💡 <b>Tip:</b> Try riding at <b>${label}</b> for a cheaper trip</div>`;
+        tipHTML = `<div class="card tip">💡 <b>Tip:</b> Try riding at <b>${label}</b> to save about $${(final_price - bestCost).toFixed(2)}</div>`;
     }
 
-    // OUTPUT
     document.getElementById("result").innerHTML = `
         <div class="card">💰 Base Price: $${base_price.toFixed(2)}</div>
         <div class="card">⚡ Surge: ${surge}x</div>
