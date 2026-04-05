@@ -3,51 +3,66 @@
 <head>
     <title>Boston Uber Price Estimator</title>
 
+    <!-- ✅ CRITICAL FOR MOBILE -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <style>
         body {
             font-family: Arial, sans-serif;
             background: linear-gradient(to right, #1e1e2f, #4b3f72);
             color: white;
             text-align: center;
-            padding: 50px;
+            padding: 20px;
+            margin: 0;
         }
 
         h1 {
             margin-bottom: 5px;
+            font-size: 26px;
         }
 
         .subtitle {
             font-size: 14px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             color: #ccc;
         }
 
         .container {
             background: white;
             color: black;
-            padding: 30px;
+            padding: 20px;
             border-radius: 15px;
-            width: 360px;
+            width: 100%;
+            max-width: 420px;
             margin: auto;
             box-shadow: 0px 10px 25px rgba(0,0,0,0.3);
         }
 
+        label {
+            display: block;
+            text-align: left;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
         select, input {
             width: 100%;
-            padding: 10px;
-            margin: 10px 0;
+            padding: 14px;
+            margin-top: 5px;
             border-radius: 8px;
             border: 1px solid #ccc;
+            font-size: 16px;
         }
 
         button {
             width: 48%;
-            padding: 10px;
-            margin-top: 10px;
-            border-radius: 8px;
+            padding: 14px;
+            margin-top: 15px;
+            border-radius: 10px;
             border: none;
             font-weight: bold;
             cursor: pointer;
+            font-size: 16px;
         }
 
         .estimate-btn {
@@ -65,15 +80,40 @@
 
         .result {
             margin-top: 20px;
-            font-weight: bold;
             text-align: left;
         }
 
         .card {
             background: #f5f5f5;
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             margin-top: 10px;
+            font-size: 15px;
+        }
+
+        .button-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        /* ✅ MOBILE IMPROVEMENTS */
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 22px;
+            }
+
+            .container {
+                padding: 15px;
+            }
+
+            .button-row {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -100,7 +140,7 @@
     <select id="hour">
         <script>
             for (let i = 0; i < 24; i++) {
-                let label = i + ":00";
+                let label;
                 if (i === 0) label = "12 AM";
                 else if (i < 12) label = i + " AM";
                 else if (i === 12) label = "12 PM";
@@ -114,7 +154,7 @@
     <label>Distance (miles)</label>
     <input id="distance" type="number" value="3" />
 
-    <div style="display:flex; justify-content:space-between;">
+    <div class="button-row">
         <button class="estimate-btn" onclick="estimateRide()">Estimate</button>
         <button class="reset-btn" onclick="resetForm()">Reset</button>
     </div>
@@ -131,17 +171,12 @@ function estimateRide() {
 
     const isWeekend = day >= 5 ? 1 : 0;
 
-    // =========================
-    // BASE PRICE MODEL
-    // =========================
+    // BASE PRICE
     let baseRate = 2.5;
     let perMile = 2.2;
-
     let base_price = baseRate + (perMile * distance);
 
-    // =========================
     // DEMAND
-    // =========================
     let demand = "Moderate";
     let wait = "3-5 minutes";
 
@@ -158,9 +193,7 @@ function estimateRide() {
         wait = "1-2 minutes";
     }
 
-    // =========================
     // SURGE
-    // =========================
     let surge = 1.0;
 
     if (day >= 4 && hour >= 20) surge = 1.5;
@@ -170,9 +203,7 @@ function estimateRide() {
 
     let final_price = base_price * surge;
 
-    // =========================
     // TRIP TIME
-    // =========================
     let speed = 22;
 
     if (hour >= 7 && hour <= 9) speed = 15;
@@ -183,9 +214,7 @@ function estimateRide() {
 
     let trip_time = Math.round((distance / speed) * 60);
 
-    // =========================
     // OUTPUT
-    // =========================
     document.getElementById("result").innerHTML = `
         <div class="card">💰 <b>Base Price:</b> $${base_price.toFixed(2)}</div>
         <div class="card">⚡ <b>Surge:</b> ${surge}x</div>
