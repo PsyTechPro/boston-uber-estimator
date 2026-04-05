@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             font-family: Arial, sans-serif;
@@ -18,10 +16,7 @@
             margin: 0;
         }
 
-        h1 {
-            margin: 20px 0 5px 0;
-            font-size: 26px;
-        }
+        h1 { margin: 20px 0 5px 0; font-size: 26px; }
 
         .subtitle {
             font-size: 14px;
@@ -37,7 +32,7 @@
             width: 100%;
             max-width: 420px;
             margin: 0 auto;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
 
         label {
@@ -46,11 +41,9 @@
             margin-top: 14px;
             margin-bottom: 8px;
             font-weight: 700;
-            font-size: 15px;
         }
 
-        select,
-        input {
+        select, input {
             width: 100%;
             padding: 14px;
             border-radius: 10px;
@@ -71,17 +64,10 @@
             border: none;
             font-weight: bold;
             cursor: pointer;
-            font-size: 16px;
         }
 
-        .estimate-btn {
-            background: #6a5acd;
-            color: white;
-        }
-
-        .reset-btn {
-            background: #d9d9d9;
-        }
+        .estimate-btn { background: #6a5acd; color: white; }
+        .reset-btn { background: #d9d9d9; }
 
         .result {
             margin-top: 20px;
@@ -93,8 +79,6 @@
             padding: 12px;
             border-radius: 10px;
             margin-top: 10px;
-            font-size: 15px;
-            line-height: 1.4;
         }
 
         .tip {
@@ -103,9 +87,7 @@
         }
 
         @media (max-width: 480px) {
-            .button-row {
-                flex-direction: column;
-            }
+            .button-row { flex-direction: column; }
         }
     </style>
 </head>
@@ -132,12 +114,10 @@
     <select id="hour">
         <script>
             for (let i = 0; i < 24; i++) {
-                let label;
-                if (i === 0) label = "12 AM";
-                else if (i < 12) label = i + " AM";
-                else if (i === 12) label = "12 PM";
-                else label = (i - 12) + " PM";
-
+                let label = i === 0 ? "12 AM" :
+                            i < 12 ? i + " AM" :
+                            i === 12 ? "12 PM" :
+                            (i - 12) + " PM";
                 document.write(`<option value="${i}">${label}</option>`);
             }
         </script>
@@ -163,101 +143,60 @@ function formatHour(h) {
     return (h - 12) + " PM";
 }
 
-function getSurge(day, hour) {
-    let surge = 1.0;
+async function estimateRide() {
+    const day = document.getElementById("day").value;
+    const hour = document.getElementById("hour").value;
+    const distance = document.getElementById("distance").value;
 
-    if (day >= 4 && hour >= 20) surge = 1.5;
-    if (day >= 4 && hour >= 23) surge = 2.0;
-    else if (day <= 4 && ((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 18))) surge = 1.2;
-    else if (day === 6 && hour >= 17 && hour <= 21) surge = 1.3;
-
-    return surge;
-}
-
-function estimateRide() {
-    const day = parseInt(document.getElementById("day").value);
-    const hour = parseInt(document.getElementById("hour").value);
-    const distance = parseFloat(document.getElementById("distance").value);
-
-    if (isNaN(distance) || distance <= 0) {
+    if (!distance || distance <= 0) {
         document.getElementById("result").innerHTML =
             `<div class="card"><b>Please enter a valid distance.</b></div>`;
         return;
     }
 
-    const isWeekend = day >= 5 ? 1 : 0;
+    // 🔥 CALL YOUR BACKEND
+    const response = await fetch(
+        `http://127.0.0.1:8000/predict?day=${day}&hour=${hour}&distance=${distance}`
+    );
 
-    // BASE PRICE
-    const base_price = 2.5 + (2.2 * distance);
+    const data = await response.json();
 
-    // DEMAND
-    let demand = "Moderate";
-    let wait = "3-5 minutes";
-
-    if (
-        (day <= 4 && ((hour >= 7 && hour <= 9) || (hour >= 16 && hour <= 18))) ||
-        (day >= 4 && hour >= 20)
-    ) {
-        demand = "High";
-        wait = "6-10+ minutes";
-    }
-
-    if (hour <= 6 || hour >= 23) {
-        demand = "Low";
-        wait = "1-2 minutes";
-    }
-
-    // SURGE
-    const surge = getSurge(day, hour);
-    const final_price = base_price * surge;
-
-    // TRIP TIME
-    let speed = 22;
-    if (hour >= 7 && hour <= 9) speed = 15;
-    else if (hour >= 16 && hour <= 18) speed = 15;
-    else if (hour >= 22 || hour <= 5) speed = 30;
-
-    if (isWeekend) speed += 3;
-
-    const trip_time = Math.round((distance / speed) * 60);
-
-    // SMART TIP: ONLY LOOK WITHIN +/- 2 HOURS
+    // 🔥 SMART TIP (reuse your logic)
     let bestHour = hour;
-    let bestCost = final_price;
+    let bestPrice = data.final_price;
 
-    const start = Math.max(0, hour - 2);
-    const end = Math.min(23, hour + 2);
+    for (let h = Math.max(0, hour - 2); h <= Math.min(23, parseInt(hour) + 2); h++) {
+        const test = await fetch(
+            `http://127.0.0.1:8000/predict?day=${day}&hour=${h}&distance=${distance}`
+        );
+        const testData = await test.json();
 
-    for (let h = start; h <= end; h++) {
-        const testSurge = getSurge(day, h);
-        const testPrice = base_price * testSurge;
-
-        if (testPrice < bestCost) {
-            bestCost = testPrice;
+        if (testData.final_price < bestPrice) {
+            bestPrice = testData.final_price;
             bestHour = h;
         }
     }
 
     let tipHTML = "";
-
-    if (bestHour !== hour) {
-        const savings = final_price - bestCost;
+    if (bestHour != hour) {
+        const savings = data.final_price - bestPrice;
         tipHTML = `
             <div class="card tip">
-                💡 <b>Better Time to Ride:</b> ${formatHour(bestHour)}<br>
-                <b>Estimated Savings:</b> $${savings.toFixed(2)}
+                💡 <b>Better Time:</b> ${formatHour(bestHour)}<br>
+                <b>Save:</b> $${savings.toFixed(2)}
             </div>
         `;
     }
 
-    // OUTPUT
+    // 🔥 OUTPUT (NOW USING REAL DATA)
     document.getElementById("result").innerHTML = `
-        <div class="card">💰 <b>Base Price:</b> $${base_price.toFixed(2)}</div>
-        <div class="card">⚡ <b>Surge:</b> ${surge}x</div>
-        <div class="card">💵 <b>Final Price:</b> $${final_price.toFixed(2)}</div>
-        <div class="card">📊 <b>Demand:</b> ${demand}</div>
-        <div class="card">⏱ <b>Wait Time:</b> ${wait}</div>
-        <div class="card">🚗 <b>Trip Time:</b> ${trip_time} min</div>
+        <div class="card">💰 <b>Base Price:</b> $${data.base_price}</div>
+        <div class="card">⚡ <b>Surge:</b> ${data.surge_multiplier}x</div>
+        <div class="card">💵 <b>Final Price:</b> $${data.final_price}</div>
+        <div class="card">📊 <b>Range:</b> $${data.low_estimate} – $${data.high_estimate}</div>
+        <div class="card">📊 <b>Demand:</b> ${data.demand}</div>
+        <div class="card">⏱ <b>Wait Time:</b> ${data.wait_time}</div>
+        <div class="card">🚗 <b>Trip Time:</b> ${data.trip_time_minutes} min</div>
         ${tipHTML}
     `;
 }
