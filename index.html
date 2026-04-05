@@ -154,20 +154,19 @@ async function estimateRide() {
         return;
     }
 
-    // 🔥 CALL YOUR BACKEND
+    // 🔥 FIXED BACKEND URL
     const response = await fetch(
-        `http://127.0.0.1:8000/predict?day=${day}&hour=${hour}&distance=${distance}`
+        `https://delightful-croquembouche-9a6406.netlify.app/.netlify/functions/predict?day=${day}&hour=${hour}&distance=${distance}`
     );
 
     const data = await response.json();
 
-    // 🔥 SMART TIP (reuse your logic)
     let bestHour = hour;
     let bestPrice = data.final_price;
 
     for (let h = Math.max(0, hour - 2); h <= Math.min(23, parseInt(hour) + 2); h++) {
         const test = await fetch(
-            `http://127.0.0.1:8000/predict?day=${day}&hour=${h}&distance=${distance}`
+            `https://delightful-croquembouche-9a6406.netlify.app/.netlify/functions/predict?day=${day}&hour=${h}&distance=${distance}`
         );
         const testData = await test.json();
 
@@ -188,7 +187,6 @@ async function estimateRide() {
         `;
     }
 
-    // 🔥 OUTPUT (NOW USING REAL DATA)
     document.getElementById("result").innerHTML = `
         <div class="card">💰 <b>Base Price:</b> $${data.base_price}</div>
         <div class="card">⚡ <b>Surge:</b> ${data.surge_multiplier}x</div>
